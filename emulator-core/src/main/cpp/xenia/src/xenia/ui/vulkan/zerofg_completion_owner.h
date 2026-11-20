@@ -15,7 +15,7 @@
 #include "xenia/base/platform.h"
 #include "xenia/ui/vulkan/vulkan_device.h"
 
-#if (XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid)
+#if (XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid || XE_PLATFORM_GNU_LINUX)
 #include <errno.h>
 #include <poll.h>
 #include <unistd.h>
@@ -235,7 +235,7 @@ class ZeroFGCompletionOwner {
   // reports POLLIN once its fence signaled; POLLNVAL (a closed fd), POLLERR
   // and POLLHUP are errors, never readiness.
   SyncFdPoll PollSyncFd() const {
-#if (XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid)
+#if (XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid || XE_PLATFORM_GNU_LINUX)
     if (sync_fd_ < 0) {
       return SyncFdPoll::kError;
     }
@@ -270,7 +270,7 @@ class ZeroFGCompletionOwner {
     if (sync_fd_ < 0) {
       return;
     }
-#if (XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid)
+#if (XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid || XE_PLATFORM_GNU_LINUX)
     close(sync_fd_);
 #endif
     sync_fd_ = -1;
