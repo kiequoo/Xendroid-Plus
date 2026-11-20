@@ -2713,6 +2713,26 @@ int dash_run(SDL_Window *win, const char *exe)
                      * showed for a picture before the game's) */
                     const double soon = ui_time() + 0.3;
                     g_hide_at = soon < g_hide_at ? soon : g_hide_at;
+                } else if (e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN ||
+                           e.type == SDL_EVENT_GAMEPAD_BUTTON_UP) {
+                    /* Track Start+Back held together as a quit combo.
+                     * SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS is set so we
+                     * receive these even while xenia_edge owns the window. */
+                    static bool s_back = false, s_start = false;
+                    static Uint64 s_combo_ms = 0;
+                    bool down = (e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
+                    if (e.gbutton.button == SDL_GAMEPAD_BUTTON_BACK)  s_back  = down;
+                    if (e.gbutton.button == SDL_GAMEPAD_BUTTON_START) s_start = down;
+                    if (s_back && s_start) {
+                        if (!s_combo_ms) s_combo_ms = SDL_GetTicks();
+                        else if (SDL_GetTicks() - s_combo_ms > 1000) {
+                            /* held 1 s — kill the child gracefully */
+                            SDL_KillProcess(g_child, false);
+                            s_combo_ms = 0;
+                        }
+                    } else {
+                        s_combo_ms = 0;
+                    }
                 }
             }
             if (g_hide_at > 0 && ui_time() >= g_hide_at) {
