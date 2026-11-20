@@ -3,6 +3,7 @@
 #ifndef XENIA_UI_HOST_DISC_SWAP_H_
 #define XENIA_UI_HOST_DISC_SWAP_H_
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
