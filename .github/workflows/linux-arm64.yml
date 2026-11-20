@@ -110,15 +110,30 @@ jobs:
         id: setup-sccache
         uses: mozilla-actions/sccache-action@v0.0.10
 
-      - name: Build
+      - name: Configure
+        # Run cmake configure manually so we can inject zerofg_inject.cmake via
+        # CMAKE_PROJECT_INCLUDE. xenia-build.py's -- passthrough only reaches
+        # cmake --build, not cmake configure.
         working-directory: emulator-core/src/main/cpp/xenia
         env:
           CC: clang-21
           CXX: clang++-21
-          SCCACHE_GHA_ENABLED: "true"
           CMAKE_C_COMPILER_LAUNCHER: sccache
           CMAKE_CXX_COMPILER_LAUNCHER: sccache
-        run: python3 ./xenia-build.py build --config=Release
+          SCCACHE_GHA_ENABLED: "true"
+        run: |
+          cmake -S . -B build -G "Ninja Multi-Config" \
+            -DCMAKE_C_COMPILER=clang-21 \
+            -DCMAKE_CXX_COMPILER=clang++-21 \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_PROJECT_INCLUDE="${GITHUB_WORKSPACE}/linux/zerofg_inject.cmake"
+
+      - name: Build
+        working-directory: emulator-core/src/main/cpp/xenia
+        env:
+          SCCACHE_GHA_ENABLED: "true"
+        run: python3 ./xenia-build.py build --config=Release --no_configure
 
       - name: sccache stats
         if: always() && steps.setup-sccache.outcome == 'success'

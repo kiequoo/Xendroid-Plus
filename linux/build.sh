@@ -13,6 +13,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 XENIA_DIR="$REPO_ROOT/emulator-core/src/main/cpp/xenia"
+INJECT_CMAKE="$REPO_ROOT/linux/zerofg_inject.cmake"
 
 # Allow caller to override the compiler (default: clang-21 / clang++-21).
 export CC="${CC:-clang-21}"
@@ -29,14 +30,19 @@ cd "$XENIA_DIR"
 echo "--- fetching Slang shader compiler ---"
 python3 ./xenia-build.py slang
 
-# Configure + build in Release.  On a native aarch64 host the top CMakeLists
-# auto-detects XE_TARGET_AARCH64; the 'default' Ninja Multi-Config preset
-# applies.  Cap simultaneous link jobs so they don't exhaust RAM on the Odin 3
-# (each link can use 2–4 GiB for ThinLTO codegen).
+# Configure manually so we can inject the zerofg::zerofg target.
+# xenia-build.py's pass_args (--) only reach cmake --build, not cmake configure.
+echo "--- configuring ---"
+cmake -S . -B build -G "Ninja Multi-Config" \
+    -DCMAKE_C_COMPILER="$CC" \
+    -DCMAKE_CXX_COMPILER="$CXX" \
+    -DCMAKE_PROJECT_INCLUDE="$INJECT_CMAKE"
+
+# Build Release. Cap link/ThinLTO jobs so they don't exhaust RAM on the Odin 3.
 echo "--- building xenia-app (Release) ---"
 XENDROID_NINJA_JOBS="${XENDROID_NINJA_JOBS:-$(nproc)}" \
 XENDROID_THINLTO_JOBS="${XENDROID_THINLTO_JOBS:-4}" \
-python3 ./xenia-build.py build --config=Release
+python3 ./xenia-build.py build --config=Release --no_configure
 
 BINARY="$XENIA_DIR/build/bin/Linux/Release/xenia-app"
 if [ ! -f "$BINARY" ]; then
