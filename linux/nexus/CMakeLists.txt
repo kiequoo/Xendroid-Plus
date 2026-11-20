@@ -45,7 +45,8 @@ add_executable(xenia-nexus
     ui/dash_browse.c
     ui/dash_cover.c
     ui/dash_find.c
-    ui/dash_settings.c   # stub (Phase 1)
+    ui/dash_settings.c
+    ui/xcfg.c
     ui/input_map.c
     ui/pointer.c
     ui/sound.c

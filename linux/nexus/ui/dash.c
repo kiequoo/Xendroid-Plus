@@ -698,7 +698,6 @@ void draw_button_glyph(float x, float y, int which, float size)
     static const UiColor k_col[4] = {{0x5E, 0xC8, 0x2C, 0xFF}, {0xE0, 0x3A, 0x30, 0xFF},
                                      {0x30, 0x7C, 0xE8, 0xFF}, {0xF0, 0xC0, 0x20, 0xFF}};
     static const char *const k_pad[4] = {"A", "B", "X", "Y"};
-    static const char *const k_key[4] = {"Enter", "Esc", "Del", "Tab"};
     if (D.in.pad && which >= 4) {
         /* the triggers, the Back button: their names on a dark key */
         const float w = ui_text_width(k_pad_wide[which], size * 0.56f, UI_FONT_BOLD) + size * 0.7f;
@@ -1490,7 +1489,7 @@ static void go_spawn(void)
         snprintf(e, sizeof(e), "The game couldn't start (error %lu)", GetLastError());
         dash_toast(e);
 #else
-    const char *args[4] = {D.exe, g_go.path, g_go.has_extra ? g_go.extra : NULL, NULL};
+    const char *args[5] = {D.exe, "--fullscreen", g_go.path, g_go.has_extra ? g_go.extra : NULL, NULL};
     g_child = SDL_CreateProcess(args, false);
     if (g_child) {
         g_go.t_start = SDL_GetTicks();
@@ -1668,8 +1667,8 @@ static void exit_yes(Dash *d)
 static void scr_main(void)
 {
     const float W = ui_w(), H = ui_h();
-    const enum UiStr items[] = {S_GAMES, S_MEMORY, S_SETTINGS, S_ONLINE, S_EXIT};
-    const int n = 5;
+    const enum UiStr items[] = {S_GAMES, S_SETTINGS, S_EXIT};
+    const int n = 3;
     int *sel = &D.sel[SCR_MAIN];
     (void)k_main_items;
     /* a tall window: the orb on top, the menu under it */
@@ -1704,9 +1703,7 @@ static void scr_main(void)
         if ((s && D.in.ok) || (over && D.in.click)) {
             switch (items[i]) {
             case S_GAMES: dash_push(SCR_GAMES); break;
-            case S_MEMORY: dash_push(SCR_MEMORY); break;
             case S_SETTINGS: dash_push(SCR_SETTINGS); break;
-            case S_ONLINE: dash_push(SCR_ONLINE); break;
             default: dash_ask(T(S_CONFIRM_EXIT), exit_yes); break;
             }
         }
@@ -2383,19 +2380,10 @@ static void scr_game(void)
     if (list_row(&l, T(S_PLAY), NULL, NULL)) {
         launch_game(g, NULL);
     }
-    if (list_row(&l, T(S_LOAD_STATE), NULL, NULL)) {
-        D.sel[SCR_STATES] = 0;
-        dash_push(SCR_STATES);
-    }
     if (list_row(&l, T(S_GAME_SETTINGS), NULL, NULL)) {
         D.editing_game = true;
         D.sel[SCR_GAME_SETTINGS] = 0;
         dash_push(SCR_GAME_SETTINGS);
-    }
-    if (list_row(&l, T(S_MODS), NULL, NULL)) {
-        D.editing_game = true;
-        D.sel[SCR_MODS] = 0;
-        dash_push(SCR_MODS);
     }
     if (list_row(&l, T(S_CONTROLS), NULL, NULL)) {
         D.editing_game = true;
@@ -2922,20 +2910,6 @@ static void scr_ingame(void)
     if (list_row(&l, T(S_RESUME), NULL, NULL)) {
         g_ig_result = DASH_INGAME_RESUME;
         g_ig_done = true;
-    }
-    if (list_row(&l, T(S_SAVE_STATE), NULL, NULL)) {
-        g_ig_saving = true;
-        D.sel[SCR_INGAME_SLOTS] = 0;
-        states_forget();
-        g_ig_thumbs_stale = true;
-        dash_push(SCR_INGAME_SLOTS);
-    }
-    if (list_row(&l, T(S_LOAD_STATE), NULL, NULL)) {
-        g_ig_saving = false;
-        D.sel[SCR_INGAME_SLOTS] = 0;
-        states_forget();
-        g_ig_thumbs_stale = true;
-        dash_push(SCR_INGAME_SLOTS);
     }
     if (list_row(&l, T(S_GAME_SETTINGS), NULL, NULL)) {
         D.editing_game = true;

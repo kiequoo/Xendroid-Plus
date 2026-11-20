@@ -72,8 +72,55 @@ static void covers_dir(char *out, size_t n)
 static bool is_image_name(const char *name)
 {
     const char *dot = strrchr(name, '.');
-    return dot && (!SDL_strcasecmp(dot, ".iso") || !SDL_strcasecmp(dot, ".xex") ||
-                   !SDL_strcasecmp(dot, ".zar"));
+    return dot && (!SDL_strcasecmp(dot, ".iso")  || !SDL_strcasecmp(dot, ".xex") ||
+                   !SDL_strcasecmp(dot, ".zar")  || !SDL_strcasecmp(dot, ".cci") ||
+                   !SDL_strcasecmp(dot, ".chd")  || !SDL_strcasecmp(dot, ".xiso"));
+}
+
+/* Read STFS header and return the content type, or 0 on failure.
+ * STFS magic is "CON ", "LIVE", or "PIRS" at offset 0.
+ * Content type is a big-endian uint32 at offset 0x344. */
+static uint32_t stfs_content_type(const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    if (!f) return 0;
+    uint8_t hdr[0x348];
+    if (fread(hdr, 1, sizeof(hdr), f) < sizeof(hdr)) { fclose(f); return 0; }
+    fclose(f);
+    /* magic check */
+    if (memcmp(hdr, "CON ", 4) != 0 &&
+        memcmp(hdr, "LIVE", 4) != 0 &&
+        memcmp(hdr, "PIRS", 4) != 0) return 0;
+    return ((uint32_t)hdr[0x344] << 24) | ((uint32_t)hdr[0x345] << 16) |
+           ((uint32_t)hdr[0x346] <<  8) |  (uint32_t)hdr[0x347];
+}
+
+/* Playable STFS content types (matches xenia's XContentType enum). */
+static bool stfs_type_is_playable(uint32_t ct)
+{
+    switch (ct) {
+    case 0x00005000: /* kXboxTitle       — original Xbox */
+    case 0x00007000: /* kXbox360Title    — disc rip as STFS */
+    case 0x000A0000: /* kGameTitle       — Games on Demand */
+    case 0x000D0000: /* kArcadeTitle     — XBLA */
+    case 0x000E0000: /* kXNA */
+    case 0x02000000: /* kCommunityGame */
+        return true;
+    default:
+        return false;
+    }
+}
+
+/* Extensionless files >= 1 MB are STFS candidates if the header magic and
+ * content type confirm they are a playable game, not DLC or saves. */
+static bool is_stfs_candidate(const char *path, Sint64 size)
+{
+    const char *name = strrchr(path, '/');
+    name = name ? name + 1 : path;
+    if (strrchr(name, '.')) return false;
+    if (size < (1 << 20)) return false;
+    const uint32_t ct = stfs_content_type(path);
+    return ct && stfs_type_is_playable(ct);
 }
 
 /* An extracted Xbox 360 game's folder: a default.xex in it */
@@ -532,7 +579,14 @@ static void cache_load(const ScanArgs *a, const bool *there)
             e->mtime = -1;      /* written before the year or the disc's signature were: read again */
         }
         snprintf(g->title, sizeof(g->title), "%.*s", (int)strcspn(title, "\r\n"), title);
-        snprintf(g->key, sizeof(g->key), "%08X.%u", g->title_id, g->version);
+        if (g->title_id) {
+            snprintf(g->key, sizeof(g->key), "%08X.%u", g->title_id, g->version);
+        } else {
+            /* No title_id (shim): derive key from path hash, same as xbox_data_shim.c */
+            unsigned long h = 5381;
+            for (const char *p = g->path; *p; p++) h = h * 33 ^ (unsigned char)*p;
+            snprintf(g->key, sizeof(g->key), "%08lX.0", h & 0xFFFFFFFFul);
+        }
         e->gone = !there[in];   /* its disk is away */
         custom_apply(e);
         insert(e);
@@ -704,7 +758,9 @@ static void scan_dir(const char *dir, int depth)
             add_game(p, &pi);       /* an extracted game: the folder is the disc */
         } else if (pi.type == SDL_PATHTYPE_DIRECTORY) {
             scan_dir(p, depth + 1);
-        } else if (pi.type == SDL_PATHTYPE_FILE && is_image_name(names[i]) && pi.size > 1 << 20 &&
+        } else if (pi.type == SDL_PATHTYPE_FILE &&
+                   (is_image_name(names[i]) || is_stfs_candidate(p, pi.size)) &&
+                   pi.size > 1 << 20 &&
                    strlen(p) < sizeof(((XdGame *)0)->path) - 1) {
             add_game(p, &pi);
         }
@@ -1345,6 +1401,102 @@ static void url_escape(const char *s, char *out, size_t n)
     out[o] = 0;
 }
 
+/* ---- SteamGridDB cover fetch -------------------------------------------- */
+
+bool lib_has_sgdb_key(void)
+{
+    char path[1200];
+    snprintf(path, sizeof(path), "%ssgdb.key", cfg_data_dir());
+    SDL_PathInfo pi;
+    return SDL_GetPathInfo(path, &pi) && pi.size > 0;
+}
+
+static bool sgdb_read_key(char *out, size_t n)
+{
+    char path[1200];
+    snprintf(path, sizeof(path), "%ssgdb.key", cfg_data_dir());
+    FILE *f = fopen(path, "r");
+    if (!f) return false;
+    size_t r = fread(out, 1, n - 1, f);
+    fclose(f);
+    out[r] = '\0';
+    while (r > 0 && (out[r-1] == '\n' || out[r-1] == '\r' || out[r-1] == ' '))
+        out[--r] = '\0';
+    return r > 0;
+}
+
+static bool download_auth(const char *url, const char *key, const char *to)
+{
+    char tmp[1200], auth[320];
+    snprintf(tmp, sizeof(tmp), "%s.part", to);
+    snprintf(auth, sizeof(auth), "Authorization: Bearer %s", key);
+    const char *args[] = {"curl", "-sfL", "--max-time", "30",
+                          "-H", auth, "-o", tmp, url, NULL};
+    if (!run(args)) { remove(tmp); return false; }
+    remove(to);
+    return rename(tmp, to) == 0;
+}
+
+static const char *json_str(char *buf, const char *field)
+{
+    char needle[64];
+    snprintf(needle, sizeof(needle), "\"%s\":\"", field);
+    char *p = strstr(buf, needle);
+    if (!p) return NULL;
+    p += strlen(needle);
+    char *end = p;
+    while (*end && *end != '"') {
+        if (*end == '\\' && *(end+1)) end++;
+        end++;
+    }
+    *end = '\0';
+    char *w = p, *r2 = p;
+    while (*r2) {
+        if (r2[0] == '\\' && r2[1] == '/') { *w++ = '/'; r2 += 2; }
+        else *w++ = *r2++;
+    }
+    *w = '\0';
+    return p;
+}
+
+static bool sgdb_fetch(const char *title, const char *to, const char *key)
+{
+    char esc[600], url[900], js_path[1200];
+    snprintf(js_path, sizeof(js_path), "%ssgdb_tmp.json", cfg_data_dir());
+
+    url_escape(title, esc, sizeof(esc));
+    snprintf(url, sizeof(url),
+             "https://www.steamgriddb.com/api/v2/search/autocomplete/%s", esc);
+    if (!download_auth(url, key, js_path)) return false;
+
+    size_t js_len = 0;
+    char *js = SDL_LoadFile(js_path, &js_len);
+    remove(js_path);
+    if (!js) return false;
+    if (!strstr(js, "\"success\":true")) { SDL_free(js); return false; }
+    const char *idp = strstr(js, "\"id\":");
+    int game_id = idp ? atoi(idp + 5) : 0;
+    SDL_free(js);
+    if (game_id <= 0) return false;
+
+    snprintf(url, sizeof(url),
+             "https://www.steamgriddb.com/api/v2/grids/game/%d"
+             "?dimensions=600x900", game_id);
+    if (!download_auth(url, key, js_path)) return false;
+
+    js = SDL_LoadFile(js_path, &js_len);
+    remove(js_path);
+    if (!js) return false;
+    if (!strstr(js, "\"success\":true")) { SDL_free(js); return false; }
+    const char *img_url = json_str(js, "url");
+    if (!img_url || !img_url[0]) { SDL_free(js); return false; }
+    char img[1024];
+    snprintf(img, sizeof(img), "%s", img_url);
+    SDL_free(js);
+
+    return download(img, to);
+}
+
 static int fetch_thread(void *arg)
 {
     for (;;) {
@@ -1367,15 +1519,26 @@ static int fetch_thread(void *arg)
         if (g->orig[0]) {
             snprintf(named.title, sizeof(named.title), "%s", g->orig);
         }
-        const char *nm = best_name(&named);
-        if (!nm) {
-            continue;
-        }
-        char esc[600], url[800], to[1200];
-        url_escape(nm, esc, sizeof(esc));
-        snprintf(url, sizeof(url), THUMBS "%s", esc);
+        char to[1200];
         cover_path(&g->g, to, sizeof(to));
-        if (download(url, to)) {
+
+        bool got = false;
+        char sgdb_key[256];
+        if (sgdb_read_key(sgdb_key, sizeof(sgdb_key))) {
+            /* Try SteamGridDB first using the game's title */
+            got = sgdb_fetch(named.title, to, sgdb_key);
+        }
+        if (!got) {
+            /* Fall back to libretro-thumbnails */
+            const char *nm = best_name(&named);
+            if (nm) {
+                char esc[600], url[800];
+                url_escape(nm, esc, sizeof(esc));
+                snprintf(url, sizeof(url), THUMBS "%s", esc);
+                got = download(url, to);
+            }
+        }
+        if (got) {
             g->cover_tried = false;     /* the UI's thread loads it */
         }
     }
@@ -1645,6 +1808,19 @@ void lib_fetch_all_covers(void)
     }
     SDL_UnlockMutex(L.mu);
     fetch_start();
+}
+
+void lib_reset_fetch_tried(void)
+{
+    if (!L.mu) return;
+    SDL_LockMutex(L.mu);
+    for (int i = 0; i < L.n; i++) {
+        char p[1200];
+        cover_path(&L.games[i]->g, p, sizeof(p));
+        if (!SDL_GetPathInfo(p, NULL))          /* still no cover */
+            L.games[i]->fetch_tried = false;
+    }
+    SDL_UnlockMutex(L.mu);
 }
 
 const char *lib_fetch_status(void)
