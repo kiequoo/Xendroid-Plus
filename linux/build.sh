@@ -24,6 +24,24 @@ echo "    xenia dir : $XENIA_DIR"
 echo "    CC        : $CC"
 echo "    CXX       : $CXX"
 
+WX_DIR="$XENIA_DIR/third_party/wxWidgets"
+
+# Xendroid's wxWidgets commit omits build/ and include/wx/*/private dirs (Android
+# never needs them). Fetch them from upstream if missing; skip if already present.
+if [ ! -d "$WX_DIR/build" ] || [ ! -d "$WX_DIR/include/wx/private" ]; then
+    echo "--- fetching missing wxWidgets dirs from upstream v3.3.2 ---"
+    TMP_WX="$(mktemp -d)"
+    git clone --filter=blob:none --no-checkout \
+        https://github.com/wxWidgets/wxWidgets.git "$TMP_WX/wx"
+    git -C "$TMP_WX/wx" sparse-checkout init --cone
+    git -C "$TMP_WX/wx" sparse-checkout set build include
+    git -C "$TMP_WX/wx" checkout v3.3.2
+    [ -d "$WX_DIR/build" ] || cp -r "$TMP_WX/wx/build" "$WX_DIR/build"
+    cp -rn "$TMP_WX/wx/include/." "$WX_DIR/include/"
+    rm -rf "$TMP_WX"
+    echo "--- wxWidgets dirs fetched ---"
+fi
+
 cd "$XENIA_DIR"
 
 # Download Slang shader compiler for the host arch (cached under .slang/).

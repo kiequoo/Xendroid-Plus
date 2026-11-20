@@ -85,20 +85,22 @@ jobs:
             -exec cp -a {} ~/apt-lists/ \;
           sudo chown -R "$(id -u):$(id -g)" ~/apt-archives ~/apt-lists
 
-      - name: Fetch wxWidgets build/cmake (missing from Xendroid tree)
-        # Xendroid commits wxWidgets source directly but omits build/ since the
-        # Android path never needs it.  The desktop CMake configure requires
-        # build/cmake/policies.cmake, so sparse-clone it from the tagged release.
+      - name: Fetch wxWidgets files missing from Xendroid tree
+        # Xendroid commits wxWidgets source but omits build/ and several
+        # include/wx/*/private/ dirs (Android never needs them).  Fetch both
+        # from the upstream v3.3.2 tag. --filter=blob:none + sparse-checkout
+        # keeps the clone lightweight (headers + CMake scripts only).
         run: |
           wx_dir="emulator-core/src/main/cpp/xenia/third_party/wxWidgets"
-          git clone --depth=1 --branch v3.3.2 --filter=blob:none --no-checkout \
+          git clone --filter=blob:none --no-checkout \
             https://github.com/wxWidgets/wxWidgets.git wx_tmp
           cd wx_tmp
           git sparse-checkout init --cone
-          git sparse-checkout set build
-          git checkout
+          git sparse-checkout set build include
+          git checkout v3.3.2
           cd ..
           cp -r wx_tmp/build "${wx_dir}/build"
+          cp -rn wx_tmp/include/. "${wx_dir}/include/"
           rm -rf wx_tmp
 
       - name: Download Slang
