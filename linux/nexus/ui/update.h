@@ -20,5 +20,7 @@ static inline UpdState  upd_state(void)                        { return UPD_IDLE
 static inline const char *upd_version(void)                    { return ""; }
 static inline const char *upd_page(void)                       { return "https://github.com/kiequoo/Xendroid-Plus/releases"; }
 static inline bool      upd_can_install(void)                   { return false; }
+static inline void      upd_install_start(void)                 {}
+static inline bool      upd_relaunch(void)                      { return false; }
 
 #endif /* NATIVE_APP_UI_UPDATE_H */

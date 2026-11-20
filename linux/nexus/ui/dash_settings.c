@@ -2,7 +2,9 @@
  * Xenia Nexus — stub dash_settings.c / dash_memory.c.
  *
  * xbased's dash_settings.c implements settings, controls, mods, cheats and
- * save-states screens, plus dash_ingame.  Many of those depend on the xbased
+ * save-states screens, plus several helpers used by dash.c's main loop
+ * (dash_take_folder, dash_play_file_later) and by the in-game overlay
+ * (load_bmp, load_thumb, states_forget).  Those helpers depend on the xbased
  * Xbox kernel (xcheat.h, mod_fit.h, win_mods.h) which are not present in
  * Xenia Nexus.
  *
@@ -14,6 +16,7 @@
  */
 #include "dash.h"
 #include "dash_int.h"
+#include "ui.h"
 
 /* ---------------------------------------------------------------- screens */
 
@@ -32,12 +35,22 @@ void scr_online(void)        { dash_pop(); }
 void scr_memory(void)        { dash_pop(); }
 void scr_memory_title(void)  { dash_pop(); }
 
-/* ---------------------------------------------------------------- in-game menu stub */
+/* ---------------------------------------------------------------- helpers called from dash.c main loop */
 
-int dash_ingame(SDL_Window *win, const char *key, const char *title,
-                const char *frame_bmp, int *slot,
-                void (*live)(const struct Config *global, const struct Config *game))
-{
-    (void)win; (void)key; (void)title; (void)frame_bmp; (void)slot; (void)live;
-    return DASH_INGAME_RESUME;
-}
+/* dash_play_file_later / dash_take_folder: drag-and-drop game launch.
+ * Not needed for Phase 1 (Odin 3 has no mouse/file-drop); stubs keep the
+ * main loop compile-able without the full xbased kernel. */
+void dash_play_file_later(const char *path) { (void)path; }
+void dash_take_folder(void) {}
+
+/* ---------------------------------------------------------------- in-game overlay helpers */
+
+/* load_bmp / load_thumb / states_forget: used by dash_ingame() in dash.c
+ * for the save-state overlay UI.  In Nexus the overlay path
+ * (ui_is_overlay()) is always false, so these are only called when a user
+ * reaches the in-game menu from within xenia's overlay — which Nexus does
+ * not support in Phase 1.  Return NULL / no-op so it links and degrades
+ * gracefully. */
+UiTex *load_bmp(const char *path)        { (void)path; return NULL; }
+UiTex *load_thumb(const char *dir, int slot) { (void)dir; (void)slot; return NULL; }
+void   states_forget(void)               {}
