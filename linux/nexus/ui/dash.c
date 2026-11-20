@@ -1753,7 +1753,8 @@ static void draw_card(LibGame *g, float x, float y, float w, float h, bool sel, 
         ui_text_fit(x + w / 2, y + h - fs * 2.6f, g->g.title, fs, UI_FONT_BOLD, ui_alpha(UI_WHITE, alpha),
                     UI_ALIGN_CENTER, w - 10);
     }
-    ui_round_outline(x, y, w, h, 10, sel ? 3 : 1, ui_alpha(sel ? UI_GREEN_HI : UI_GREEN_DIM, alpha));
+    ui_round_outline(x, y, w, h, 10, sel ? 3 : 1,
+                     sel ? ui_alpha(UI_GREEN_HI, alpha) : ui_alpha(UI_TILE_BORDER, alpha));
 }
 
 /* when the game played last was played: that game's card is marked (a
@@ -1841,7 +1842,8 @@ static void draw_add_card(float x, float y, float w, float h, bool sel, float al
         ui_rect(cx - 2, cy - r * 0.5f, 4, r, fg);
         ui_text_fit(x + is + 14, y + h / 2 - 12, T(S_ADD_GAMES), 19, sel ? UI_FONT_BOLD : UI_FONT_REGULAR,
                     ui_alpha(sel ? UI_WHITE : UI_GREY, alpha), UI_ALIGN_LEFT, w - is - 22);
-        ui_round_outline(x, y, w, h, 8, sel ? 2.5f : 1, ui_alpha(sel ? UI_GREEN_HI : UI_GREEN_DIM, alpha));
+        ui_round_outline(x, y, w, h, 8, sel ? 2.5f : 1,
+                         sel ? ui_alpha(UI_GREEN_HI, alpha) : ui_alpha(UI_TILE_BORDER, alpha));
         return;
     }
     if (sel) {
@@ -1854,7 +1856,8 @@ static void draw_add_card(float x, float y, float w, float h, bool sel, float al
     ui_rect(cx - 3, cy - r * 0.5f, 6, r, ui_alpha(sel ? UI_GREEN_HI : UI_GREEN, alpha));
     ui_text_fit(cx, y + h * 0.68f, T(S_ADD_GAMES), 20, UI_FONT_BOLD, ui_alpha(sel ? UI_WHITE : UI_GREY, alpha),
                 UI_ALIGN_CENTER, w - 14);
-    ui_round_outline(x, y, w, h, 10, sel ? 3 : 1, ui_alpha(sel ? UI_GREEN_HI : UI_GREEN_DIM, alpha));
+    ui_round_outline(x, y, w, h, 10, sel ? 3 : 1,
+                     sel ? ui_alpha(UI_GREEN_HI, alpha) : ui_alpha(UI_TILE_BORDER, alpha));
 }
 
 /* a favorite's star: five points on a dark disc, top right of a card */
@@ -1968,7 +1971,8 @@ static void draw_tile(LibGame *g, float x, float y, float w, float h, bool sel, 
     if (g->fav) {
         draw_star(x + w - 14, y + 15, 7, alpha);
     }
-    ui_round_outline(x, y, w, h, 8, sel ? 2.5f : 1, ui_alpha(sel ? UI_GREEN_HI : UI_GREEN_DIM, alpha));
+    ui_round_outline(x, y, w, h, 8, sel ? 2.5f : 1,
+                     sel ? ui_alpha(UI_GREEN_HI, alpha) : ui_alpha(UI_TILE_BORDER, alpha));
 }
 
 static void open_game(LibGame *g)
@@ -2040,6 +2044,7 @@ static void scr_games(void)
     const float top = 140, bottom = H - 150, gw = W - 120;
     float cw, ch, gx, gy;   /* a cell, the gaps between */
     int cols, vrows;        /* across, and rows on screen */
+    float sl_x = 0, sl_w = 0;  /* spotlight slot (view == 3 only) */
     if (view == 0) {
         /* big box-shaped cards (box art is 7:10): the largest whose rows (one
          * or two) hold every game; more: two rows that scroll */
@@ -2070,7 +2075,7 @@ static void scr_games(void)
         ch = (bottom - top + 10 - gy * (vrows - 1)) / vrows;
         cw = ch * 0.70f;
         cols = (int)((gw + gx) / (cw + gx));
-    } else {
+    } else if (view == 2) {
         /* icons and names: rows of tiles */
         gx = 14;
         gy = 10;
@@ -2078,9 +2083,21 @@ static void scr_games(void)
         cw = 272;
         vrows = (int)((bottom - top + 10 + gy) / (ch + gy));
         cols = (int)((gw + gx) / (cw + gx));
+    } else {
+        /* view == 3: NXE spotlight + 3-col grid */
+        gx = 18;
+        gy = 20;
+        cols = 3;
+        sl_x = 60.0f;
+        sl_w = gw * 0.44f;
+        const float rest_w = gw - sl_w - gx;
+        cw = (rest_w - gx * (cols - 1)) / cols;
+        ch = cw / 0.70f;
+        vrows = (int)((bottom - top + gy) / (ch + gy));
+        if (vrows < 1) vrows = 1;
     }
     cols = cols > 0 ? cols : 1;
-    const float x0 = (W - (cols * (cw + gx) - gx)) / 2;
+    const float x0 = view == 3 ? sl_x + sl_w + gx : (W - (cols * (cw + gx) - gx)) / 2;
     /* the selection is the game's: it stays on it while games join or the order changes */
     static LibGame *s_selg;
     static bool s_on_add;
@@ -2106,13 +2123,21 @@ static void scr_games(void)
         *sel -= cols;
     }
     if (D.in.down) {
-        *sel = *sel + cols < nc ? *sel + cols : nc - 1;
+        if (view == 3 && *sel == 0) {
+            *sel = nc > 1 ? 1 : 0;
+        } else {
+            *sel = *sel + cols < nc ? *sel + cols : nc - 1;
+        }
     }
     if (D.in.lb) {
         *sel = *sel >= cols * vrows ? *sel - cols * vrows : 0;
     }
     if (D.in.rb) {
-        *sel = *sel + cols * vrows < nc ? *sel + cols * vrows : nc - 1;
+        if (view == 3 && *sel == 0) {
+            *sel = nc > 1 ? 1 : 0;
+        } else {
+            *sel = *sel + cols * vrows < nc ? *sel + cols * vrows : nc - 1;
+        }
     }
     /* the triggers: the next (or this, then the last) group's first game,
      * by the order (a letter, a publisher, a year; the favorites) */
@@ -2151,33 +2176,61 @@ static void scr_games(void)
     const int rows = (nc + cols - 1) / cols;
     static int s_prev = -1, s_prev_cols, s_prev_view;
     if (*sel != s_prev || cols != s_prev_cols || view != s_prev_view) {
-        /* the selection moved (a press, a jump, games joining before it): in sight */
-        if (*sel / cols < *scroll) {
-            *scroll = *sel / cols;
+        /* the selection moved (a press, a jump, games joining before it): in sight.
+         * For view==3 the spotlight (sel=0) is pinned; grid rows use (sel-1)/cols. */
+        const int row_idx = (view == 3 && *sel > 0) ? (*sel - 1) / cols : *sel / cols;
+        if (row_idx < *scroll) {
+            *scroll = row_idx;
         }
-        if (*sel / cols > *scroll + vrows - 1) {
-            *scroll = *sel / cols - vrows + 1;
+        if (row_idx > *scroll + vrows - 1) {
+            *scroll = row_idx - vrows + 1;
         }
     }
     *scroll = *scroll > rows - vrows ? rows - vrows : *scroll;
     *scroll = *scroll < 0 ? 0 : *scroll;
+    /* view == 3: draw the spotlight (large featured card, left side) */
+    if (view == 3 && n > 0) {
+        const bool ssel = (*sel == 0);
+        const float sk = ssel ? 1.04f : 1.0f, sl_h = bottom - top;
+        const float sa = ease(D.anim * 4);
+        ui_clip(sl_x, top - 20, sl_w + gx + 10, sl_h + 40);
+        draw_card(vis[0], sl_x - sl_w * (sk - 1) / 2, top - sl_h * (sk - 1) / 2,
+                  sl_w * sk, sl_h * sk, ssel, sa);
+        /* NXE-style title scrim + name overlaid at the bottom of the spotlight */
+        ui_rect_grad(sl_x, top + sl_h * 0.60f, sl_w, sl_h * 0.40f,
+                     ui_alpha(UI_BLACK, 0.0f), ui_alpha(UI_BLACK, 0.80f));
+        ui_text_fit(sl_x + 14, top + sl_h - 36, vis[0]->g.title,
+                    22, UI_FONT_BOLD, UI_WHITE, UI_ALIGN_LEFT, sl_w - 20);
+        if (vis[0]->fav) {
+            draw_star(sl_x + sl_w - 18, top + 18, 10, sa);
+        }
+        const bool sp_over = D.in.mx >= sl_x && D.in.mx < sl_x + sl_w &&
+                             D.in.my >= top && D.in.my < top + sl_h;
+        if (sp_over && D.in.moved) *sel = 0;
+        if (sp_over && D.in.click) open_game(vis[0]);
+        ui_unclip();
+    }
     /* the rows on screen (and the selected card's glow), not the next one's top */
-    ui_clip(0, top - 20, W, vrows * (ch + gy) - gy + 20 + (view == 2 ? 6 : 16));
+    {
+        const float clip_x = view == 3 ? x0 - 10 : 0;
+        ui_clip(clip_x, top - 20, W - clip_x, vrows * (ch + gy) - gy + 20 + (view == 2 ? 6 : 16));
+    }
     for (int r = 0; r <= vrows; r++) {
         for (int c = 0; c < cols; c++) {
-            const int i = (*scroll + r) * cols + c;
+            const int grid_i = (*scroll + r) * cols + c;
+            const int i = grid_i + (view == 3 ? 1 : 0);
             if (i >= nc) {
                 break;
             }
             const bool s = i == *sel;
-            const float k = s && view < 2 ? (view ? 1.08f : 1.06f) : 1.0f;
+            const float k = s && view != 2 ? (view == 1 ? 1.08f : 1.06f) : 1.0f;
             const float x = x0 + c * (cw + gx) - cw * (k - 1) / 2, y = top + r * (ch + gy) - ch * (k - 1) / 2;
             const bool over = D.in.mx >= x && D.in.mx < x + cw && D.in.my >= y && D.in.my < y + ch &&
                               D.in.my < bottom + 20;
             if (over && D.in.moved) {
                 *sel = i;
             }
-            const float a = ease(D.anim * 4 - (r * cols + c) * (view ? 0.01f : 0.04f));
+            const float a = ease(D.anim * 4 - (r * cols + c) * (view == 0 ? 0.04f : 0.01f));
             if (i == n) {
                 draw_add_card(x, y, cw * k, ch * k, s, a);
                 if (over && D.in.click) {
@@ -2194,7 +2247,8 @@ static void scr_games(void)
             } else {
                 draw_card(g, x, y, cw * k, ch * k, s, a);
                 if (g->fav) {
-                    draw_star(x + cw * k - (view ? 11 : 18), y + (view ? 11 : 18), view ? 6 : 10, a);
+                    const float sd = view == 1 ? 11 : 18;
+                    draw_star(x + cw * k - sd, y + sd, view == 1 ? 6 : 10, a);
                 }
                 if (is_last_played(g)) {
                     draw_last_mark(x, y, cw * k, ch * k, 10, a);

@@ -1204,54 +1204,19 @@ void ui_backdrop(float k)
 {
     const float W = ui_w(), H = ui_h();
     const double t = ui_time();
-    ui_rect_grad(0, 0, W, H, (UiColor){0x02, 0x0A, 0x02, 0xFF}, (UiColor){0x04, 0x16, 0x03, 0xFF});
-    /* the fog: slow green lights drifting */
-    for (int i = 0; i < 6; i++) {
-        const float ph = (float)(t * (0.05 + i * 0.013) + i * 1.7);
-        const float x = W * (0.5f + 0.42f * sinf(ph * 1.3f + i)), y = H * (0.5f + 0.38f * cosf(ph + i * 2.1f));
-        ui_glow(x, y, H * (0.55f + 0.15f * sinf(ph * 2)), ui_alpha((UiColor){0x3C, 0xA0, 0x10, 0xFF}, 0.22f * k));
+    /* NXE warm dark-grey gradient base */
+    ui_rect_grad(0, 0, W, H, UI_BG_TOP, UI_BG_BOTTOM);
+    /* subtle drifting haze: very faint, desaturated, so it doesn't read as green */
+    for (int i = 0; i < 4; i++) {
+        const float ph = (float)(t * (0.04 + i * 0.009) + i * 2.1);
+        const float x = W * (0.5f + 0.45f * sinf(ph * 1.1f + i));
+        const float y = H * (0.4f + 0.35f * cosf(ph + i * 1.8f));
+        ui_glow(x, y, H * (0.65f + 0.1f * sinf(ph * 1.5f)),
+                ui_alpha((UiColor){0x28, 0x50, 0x28, 0xFF}, 0.08f * k));
     }
-    /* the linked hexagons, drifting and pulsing (the original dashboard's backdrop) */
-    {
-        const float hs = 46, hx = hs * 1.5f, hy = hs * 0.866f * 2;
-        const float ox = fmodf((float)(t * 6), hx * 2), oy = fmodf((float)(t * 3), hy);
-        for (int gx = -1; gx * hx < W + hx; gx++) {
-            for (int gy = -1; gy * hy < H * 0.7f + hy; gy++) {
-                const float x = gx * hx - ox, y = gy * hy + ((gx & 1) ? hy / 2 : 0) - oy;
-                const float wave = 0.5f + 0.5f * sinf((float)t * 1.3f + gx * 0.7f + gy * 1.1f);
-                const float a = 0.13f * k * wave * (1 - y / (H * 0.75f));
-                if (a <= 0.004f) {
-                    continue;
-                }
-                for (int s = 0; s < 6; s++) {
-                    const float a0 = (float)(s * M_PI / 3), a1 = (float)((s + 1) * M_PI / 3);
-                    ui_line(x + cosf(a0) * hs * 0.5f, y + sinf(a0) * hs * 0.5f, x + cosf(a1) * hs * 0.5f,
-                            y + sinf(a1) * hs * 0.5f, 1.2f, ui_alpha(UI_GREEN, a));
-                }
-            }
-        }
-    }
-    /* the floor's grid, receding */
-    const UiColor gl = ui_alpha(UI_GREEN, 0.10f * k);
-    const float horizon = H * 0.62f;
-    for (int i = 0; i <= 12; i++) {
-        const float z = fmodf((float)(i + fmod(t * 0.35, 1.0)), 12.f) / 12.f;
-        const float y = horizon + (H - horizon) * z * z;
-        ui_line(0, y, W, y, 1.2f, ui_alpha(gl, z));
-    }
-    for (int i = -12; i <= 12; i++) {
-        ui_line(W / 2 + i * W * 0.02f, horizon, W / 2 + i * W * 0.16f, H, 1.0f, gl);
-    }
-    /* specks rising */
-    for (int i = 0; i < 40; i++) {
-        const float sx = fmodf(i * 97.31f, 1.0f) * W;
-        const float sp = 0.02f + fmodf(i * 0.618f, 1.0f) * 0.05f;
-        const float sy = H - fmodf((float)(t * sp * H + i * 53.7), H + 20);
-        ui_glow(sx + 6 * sinf((float)t + i), sy, 3 + (i % 3), ui_alpha(UI_GREEN_HI, 0.5f * k));
-    }
-    /* a vignette */
-    ui_rect_grad(0, 0, W, H * 0.25f, (UiColor){0, 0, 0, 160}, (UiColor){0, 0, 0, 0});
-    ui_rect_grad(0, H * 0.75f, W, H * 0.25f, (UiColor){0, 0, 0, 0}, (UiColor){0, 0, 0, 200});
+    /* vignette: matches NXE's edge darkening */
+    ui_rect_grad(0, 0, W, H * 0.22f, (UiColor){0, 0, 0, 100}, (UiColor){0, 0, 0, 0});
+    ui_rect_grad(0, H * 0.78f, W, H * 0.22f, (UiColor){0, 0, 0, 0}, (UiColor){0, 0, 0, 160});
 }
 
 void ui_orb(float cx, float cy, float r, float pulse)

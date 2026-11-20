@@ -44,13 +44,16 @@ static int read_sort(void)
 int dash_find_view(void)
 {
     const char *v = cfg_get(&D.global, "ui.view");
-    return v && !strcmp(v, "small") ? 1 : v && !strcmp(v, "icons") ? 2 : 0;
+    if (v && !strcmp(v, "small"))     return 1;
+    if (v && !strcmp(v, "icons"))     return 2;
+    if (v && !strcmp(v, "spotlight")) return 3;
+    return 0;
 }
 
 static void set_view(int v)
 {
-    static const char *const k[3] = {"large", "small", "icons"};
-    cfg_set(&D.global, "ui.view", k[(v % 3 + 3) % 3]);
+    static const char *const k[4] = {"large", "small", "icons", "spotlight"};
+    cfg_set(&D.global, "ui.view", k[(v % 4 + 4) % 4]);
 }
 
 void dash_find_next_view(void)
@@ -538,9 +541,9 @@ void scr_find(void)
     static const char *const sv[] = {"name", "publisher", "year"};
     const char *sn[] = {T(S_SORT_NAME), T(S_PUBLISHER), T(S_YEAR)};
     opt_choice(&l, S_SORT_BY, "ui.sort", sv, sn, 3, "name");
-    static const char *const vv[] = {"large", "small", "icons"};
-    const char *vn[] = {T(S_VIEW_LARGE), T(S_VIEW_SMALL), T(S_VIEW_ICONS)};
-    opt_choice(&l, S_VIEW, "ui.view", vv, vn, 3, "large");
+    static const char *const vv[] = {"large", "small", "icons", "spotlight"};
+    const char *vn[] = {T(S_VIEW_LARGE), T(S_VIEW_SMALL), T(S_VIEW_ICONS), T(S_VIEW_SPOTLIGHT)};
+    opt_choice(&l, S_VIEW, "ui.view", vv, vn, 4, "large");
     opt_bool(&l, S_FAV_FIRST, "ui.favfirst", true, false);
     opt_bool(&l, S_LAST_FIRST, "ui.lastfirst", true, false);
     if (list_row(&l, T(S_CLEAR_FILTERS), NULL, NULL)) {

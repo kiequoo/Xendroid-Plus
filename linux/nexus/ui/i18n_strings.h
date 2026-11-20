@@ -332,6 +332,7 @@ X(S_VIEW, "View", "Vista", "Affichage", "Ansicht", "Vista", "Exibição", "Ви�
 X(S_VIEW_LARGE, "Large covers", "Carátulas grandes", "Grandes jaquettes", "Große Cover", "Copertine grandi", "Capas grandes", "Крупные обложки", "Duże okładki", "大きいカバー", "大封面", "큰 표지")
 X(S_VIEW_SMALL, "Small covers", "Carátulas pequeñas", "Petites jaquettes", "Kleine Cover", "Copertine piccole", "Capas pequenas", "Мелкие обложки", "Małe okładki", "小さいカバー", "小封面", "작은 표지")
 X(S_VIEW_ICONS, "Icons and names", "Iconos y nombres", "Icônes et noms", "Symbole und Namen", "Icone e nomi", "Ícones e nomes", "Значки и названия", "Ikony i nazwy", "アイコンと名前", "图标和名称", "아이콘과 이름")
+X(S_VIEW_SPOTLIGHT, "Spotlight", "Destacado", "Mise en avant", "Spotlight", "Spotlight", "Destaque", "Акцент", "Wyróżnienie", "スポットライト", "聚焦", "스포트라이트")
 X(S_FAV_FIRST, "Favorites first", "Favoritos primero", "Favoris en premier", "Favoriten zuerst", "Preferiti per primi", "Favoritos primeiro", "Избранное сначала", "Ulubione najpierw", "お気に入りを先頭に", "收藏置顶", "즐겨찾기 먼저")
 X(S_LAST_FIRST, "Last played first", "Último jugado primero", "Dernier joué en premier", "Zuletzt gespieltes zuerst", "Ultimo giocato per primo", "Último jogado primeiro", "Последняя игра сначала", "Ostatnio grana najpierw", "最後にプレイしたゲームを先頭に", "最近玩过的置顶", "최근 플레이 먼저")
 X(S_CLEAR_FILTERS, "Clear search", "Quitar búsqueda", "Effacer la recherche", "Suche löschen", "Cancella ricerca", "Limpar busca", "Сбросить поиск", "Wyczyść wyszukiwanie", "検索をクリア", "清除搜索", "검색 지우기")

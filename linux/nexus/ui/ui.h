@@ -16,17 +16,21 @@ typedef struct { uint8_t r, g, b, a; } UiColor;
 /* A texture of the interface's (the renderer's, or the overlay's). */
 typedef struct UiTex UiTex;
 
-/* The theme: Xbox 360 Metro dashboard — #107C10 green accent on dark slate.
- * Xenia Nexus reskin (distinct from xbased's OG-Xbox acid-green palette). */
-#define UI_GREEN      ((UiColor){0x10, 0x7C, 0x10, 0xFF})  /* Xbox 360 green */
-#define UI_GREEN_HI   ((UiColor){0x2D, 0xB3, 0x2D, 0xFF})  /* lighter hover */
-#define UI_GREEN_DIM  ((UiColor){0x0A, 0x50, 0x0A, 0xFF})  /* dimmed accent */
-#define UI_GREEN_DARK ((UiColor){0x05, 0x28, 0x05, 0xFF})  /* dark well */
-#define UI_PANEL      ((UiColor){0x1A, 0x1C, 0x1E, 0xD8})  /* Metro dark panel */
-#define UI_WHITE      ((UiColor){0xFF, 0xFF, 0xFF, 0xFF})  /* pure white text */
-#define UI_GREY       ((UiColor){0x9E, 0xA3, 0xA8, 0xFF})  /* Metro mid-grey */
-#define UI_RED        ((UiColor){0xE7, 0x48, 0x2E, 0xFF})  /* Xbox red */
-#define UI_BLACK      ((UiColor){0x0E, 0x10, 0x11, 0xFF})  /* Metro near-black bg */
+/* The theme: Xbox 360 Metro dashboard — #107C10 green accent on warm dark slate. */
+#define UI_GREEN       ((UiColor){0x10, 0x7C, 0x10, 0xFF})  /* Xbox 360 green */
+#define UI_GREEN_HI    ((UiColor){0x2D, 0xB3, 0x2D, 0xFF})  /* lighter hover */
+#define UI_GREEN_DIM   ((UiColor){0x0A, 0x50, 0x0A, 0xFF})  /* dimmed accent */
+#define UI_GREEN_DARK  ((UiColor){0x05, 0x28, 0x05, 0xFF})  /* dark well */
+#define UI_PANEL       ((UiColor){0x1A, 0x1C, 0x1E, 0xD8})  /* Metro dark panel */
+#define UI_WHITE       ((UiColor){0xF7, 0xF7, 0xF7, 0xFF})  /* NXE off-white text */
+#define UI_GREY        ((UiColor){0x9E, 0xA3, 0xA8, 0xFF})  /* Metro mid-grey */
+#define UI_RED         ((UiColor){0xE7, 0x48, 0x2E, 0xFF})  /* Xbox red */
+#define UI_BLACK       ((UiColor){0x0E, 0x10, 0x11, 0xFF})  /* Metro near-black bg */
+/* NXE backdrop gradient: warm dark charcoal top → darker bottom */
+#define UI_BG_TOP      ((UiColor){0x3C, 0x41, 0x43, 0xFF})
+#define UI_BG_BOTTOM   ((UiColor){0x22, 0x25, 0x26, 0xFF})
+/* NXE tile border: thin translucent white on unselected tiles */
+#define UI_TILE_BORDER ((UiColor){0xFF, 0xFF, 0xFF, 0x55})
 
 static inline UiColor ui_alpha(UiColor c, float a)
 {
