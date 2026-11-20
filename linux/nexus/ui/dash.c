@@ -1656,8 +1656,6 @@ static void wait_child(void)
 
 /* ------------------------------------------------------------ main */
 
-static const char *k_main_items[] = {NULL, NULL, NULL, NULL, NULL};
-
 /* Exit, confirmed: the app closes (from a gamepad too, full screen) */
 static void exit_yes(Dash *d)
 {
@@ -1667,56 +1665,108 @@ static void exit_yes(Dash *d)
 static void scr_main(void)
 {
     const float W = ui_w(), H = ui_h();
-    const enum UiStr items[] = {S_GAMES, S_SETTINGS, S_EXIT};
+    static const enum UiStr labels[] = {S_GAMES, S_SETTINGS, S_EXIT};
     const int n = 3;
     int *sel = &D.sel[SCR_MAIN];
-    (void)k_main_items;
-    /* a tall window: the orb on top, the menu under it */
-    const bool tall = W < H * 1.1f;
-    const float ox = tall ? W * 0.5f : W * 0.32f, oy = tall ? H * 0.27f : H * 0.5f;
-    const float orb_r = tall ? fminf(H * 0.11f, W * 0.18f) : H * 0.13f;
-    ui_orb(ox, oy, orb_r, 0);
-    /* the logo, over the orb */
-    ui_text(ox, oy - orb_r * 0.36f, "Xenia Nexus", orb_r * 0.46f, UI_FONT_BOLD, UI_WHITE, UI_ALIGN_CENTER);
-    /* the items: green capsules fanned on the orb's right */
+
+    const float t = ease(D.anim * 4);
+
+    /* NXE top bar: "X" logo + "enia Nexus" + clock */
+    const float xw = ui_text_width("X", 52, UI_FONT_BOLD);
+    ui_text(28, 20, "X", 52, UI_FONT_BOLD, UI_GREEN_HI, UI_ALIGN_LEFT);
+    ui_text(28 + xw + 6, 32, "enia Nexus", 26, UI_FONT_BOLD, UI_GREY, UI_ALIGN_LEFT);
+    {
+        time_t now = time(NULL);
+        struct tm tmv;
+        localtime_r(&now, &tmv);
+        char hm[16];
+        snprintf(hm, sizeof(hm), "%s", dash_hm(tmv.tm_hour, tmv.tm_min));
+        char *colon = strchr(hm, ':');
+        if (colon) {
+            *colon = 0;
+            const char *right = colon + 1;
+            const float rw = ui_text_width(right, 30, UI_FONT_BOLD);
+            const float cw = ui_text_width(":", 30, UI_FONT_BOLD);
+            const double frac = fmod(ui_time(), 1.0);
+            const float ca = 0.45f + 0.55f * (float)(0.5 + 0.5 * cos(frac * 6.2831853));
+            ui_text(W - 60, 24, right, 30, UI_FONT_BOLD, UI_GREEN_HI, UI_ALIGN_RIGHT);
+            ui_text(W - 60 - rw - cw, 24, ":", 30, UI_FONT_BOLD, ui_alpha(UI_GREEN_HI, ca), UI_ALIGN_LEFT);
+            ui_text(W - 60 - rw - cw - 1, 24, hm, 30, UI_FONT_BOLD, UI_GREEN_HI, UI_ALIGN_RIGHT);
+        } else {
+            ui_text(W - 60, 24, hm, 30, UI_FONT_BOLD, UI_GREEN_HI, UI_ALIGN_RIGHT);
+        }
+        char day[96];
+        date_text(&tmv, day, sizeof(day));
+        ui_text(W - 60, 60, day, 19, UI_FONT_REGULAR, UI_GREY, UI_ALIGN_RIGHT);
+    }
+    /* thin green line under top bar */
+    ui_rect_hgrad(0, 90, W * 0.55f, 1, ui_alpha(UI_GREEN, 0.7f), ui_alpha(UI_GREEN, 0.0f));
+
+    /* NXE blade panels: 3 tall cards side by side, centered */
+    const float blade_w = fminf(W * 0.28f, 240.0f);
+    const float blade_h = H * 0.64f;
+    const float gap     = W * 0.025f;
+    const float total_w = n * blade_w + (n - 1) * gap;
+    const float base_x  = (W - total_w) / 2.0f;
+    const float base_y  = H * 0.155f;
+
     for (int i = 0; i < n; i++) {
-        const float t = ease(D.anim * 3 - i * 0.12f);
-        const float ang = (i - (n - 1) / 2.0f) * 0.32f;
-        const float bw = tall ? W * 0.7f : W * 0.30f, bh = 56;
-        const float bx = tall ? (W - bw) / 2 + (1 - t) * 60 : ox + orb_r * 1.5f + cosf(ang) * 40 - 30 + (1 - t) * 60;
-        const float by = tall ? oy + orb_r * 1.9f + i * (bh + 18) : oy + sinf(ang) * orb_r * 2.9f - 28;
-        const bool s = *sel == i;
-        const bool over = D.in.mx >= bx && D.in.mx < bx + bw && D.in.my >= by && D.in.my < by + bh;
-        if (over && D.in.moved) {
-            *sel = i;
-        }
-        if (!tall) {
-            ui_line(ox + orb_r * 0.9f * cosf(ang), oy + orb_r * 0.9f * sinf(ang), bx, by + bh / 2, s ? 3 : 1.5f,
-                    ui_alpha(UI_GREEN, (s ? 0.8f : 0.35f) * t));
-        }
+        const bool s = (*sel == i);
+        const float scale = s ? 1.06f : 0.96f;
+        const float bw = blade_w * scale;
+        const float bh = blade_h * scale;
+        const float bx = base_x + i * (blade_w + gap) + (blade_w - bw) / 2.0f;
+        const float by = base_y + (blade_h - bh) / 2.0f - (s ? 10.0f : 0.0f);
+
+        /* blade background */
+        const UiColor bg_top = s ? (UiColor){0x14, 0x6E, 0x14, 0xFF} : (UiColor){0x20, 0x24, 0x26, 0xF0};
+        const UiColor bg_bot = s ? (UiColor){0x06, 0x36, 0x06, 0xFF} : (UiColor){0x0E, 0x11, 0x12, 0xF0};
         if (s) {
-            ui_glow(bx + bw / 2, by + bh / 2, bw * 0.7f, ui_alpha(UI_GREEN, 0.25f * t));
+            ui_glow(bx + bw / 2, by + bh * 0.42f, bw * 0.95f, ui_alpha(UI_GREEN, 0.14f * t));
         }
-        ui_round(bx, by, bw, bh, bh / 2, ui_alpha(s ? (UiColor){0x3C, 0x9A, 0x12, 0xFF} : (UiColor){0x14, 0x3A, 0x08, 0xFF}, 0.92f * t));
-        ui_round_outline(bx, by, bw, bh, bh / 2, s ? 2.5f : 1.5f, ui_alpha(s ? UI_GREEN_HI : UI_GREEN_DIM, t));
-        ui_text(bx + 34, by + 11, T(items[i]), 32, UI_FONT_BOLD, ui_alpha(s ? UI_WHITE : UI_GREY, t), UI_ALIGN_LEFT);
+        ui_rect_grad(bx, by, bw, bh, ui_alpha(bg_top, t), ui_alpha(bg_bot, t));
+        ui_round_outline(bx, by, bw, bh, 4, s ? 2.5f : 1.0f,
+                        s ? ui_alpha(UI_GREEN_HI, t) : ui_alpha(UI_TILE_BORDER, t));
+
+        /* 360-style ring icon in upper portion */
+        const float ring_cx = bx + bw / 2;
+        const float ring_cy = by + bh * 0.37f;
+        const float ring_r  = bw * 0.26f;
+        ui_ring(ring_cx, ring_cy, ring_r, ring_r * 0.17f,
+                s ? (float)(ui_time() * 0.5) : 0.9f,
+                ring_r * 0.17f,
+                ui_alpha(s ? UI_GREEN_HI : (UiColor){0x50, 0x55, 0x58, 0xFF}, 0.75f * t));
+        ui_ring(ring_cx, ring_cy, ring_r * 0.55f, ring_r * 0.12f, s ? 0.0f : 0.9f,
+                ring_r * 0.12f,
+                ui_alpha(s ? UI_GREEN : (UiColor){0x30, 0x34, 0x36, 0xFF}, 0.55f * t));
+
+        /* blade label */
+        ui_text(bx + bw / 2, by + bh * 0.70f, T(labels[i]),
+                s ? 28 : 22, UI_FONT_BOLD,
+                ui_alpha(s ? UI_WHITE : UI_GREY, t), UI_ALIGN_CENTER);
+
+        /* mouse hover + click */
+        const bool over = D.in.mx >= bx && D.in.mx < bx + bw &&
+                          D.in.my >= by && D.in.my < by + bh;
+        if (over && D.in.moved) *sel = i;
         if ((s && D.in.ok) || (over && D.in.click)) {
-            switch (items[i]) {
-            case S_GAMES: dash_push(SCR_GAMES); break;
+            switch (labels[i]) {
+            case S_GAMES:    dash_push(SCR_GAMES);    break;
             case S_SETTINGS: dash_push(SCR_SETTINGS); break;
-            default: dash_ask(T(S_CONFIRM_EXIT), exit_yes); break;
+            default:         dash_ask(T(S_CONFIRM_EXIT), exit_yes); break;
             }
         }
     }
-    if (D.in.up) {
-        *sel = (*sel + n - 1) % n;
-    }
-    if (D.in.down) {
-        *sel = (*sel + 1) % n;
-    }
-    if (D.in.y) {
-        dash_push(SCR_ABOUT);
-    }
+
+    /* gamepad / keyboard navigation: LB/RB and left/right cycle blades */
+    if (D.in.left || D.in.lb)  *sel = (*sel + n - 1) % n;
+    if (D.in.right || D.in.rb) *sel = (*sel + 1) % n;
+    /* up/down also navigate for d-pad convenience */
+    if (D.in.up)   *sel = (*sel + n - 1) % n;
+    if (D.in.down) *sel = (*sel + 1) % n;
+
+    if (D.in.y) dash_push(SCR_ABOUT);
+
     char v[64];
     snprintf(v, sizeof(v), "Xenia Nexus %s", NEXUS_VERSION);
     ui_text(W - 60, H - 52, v, 20, UI_FONT_REGULAR, UI_GREY, UI_ALIGN_RIGHT);
