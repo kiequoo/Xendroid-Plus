@@ -11,9 +11,14 @@ set -e
 SELF_DIR="$(dirname "$(readlink -f "$0")")"
 export APPDIR="${APPDIR:-$SELF_DIR}"
 
-# Resolve binaries inside the AppDir
-XENIA_EDGE="$APPDIR/usr/bin/xenia_edge"
-XENIA_NEXUS="$APPDIR/usr/bin/xenia-nexus"
+# Resolve binaries inside the AppDir.
+# linuxdeploy renames the main executable to <name>.bin and installs a
+# library-path wrapper at usr/bin/<name> — point directly at the real binary.
+XENIA_EDGE="$APPDIR/usr/bin/xenia_edge.bin"
+XENIA_NEXUS="$APPDIR/usr/bin/xenia-nexus.bin"
+# Fall back to unwrapped names (local builds, future linuxdeploy versions)
+[ -x "$XENIA_EDGE"  ] || XENIA_EDGE="$APPDIR/usr/bin/xenia_edge"
+[ -x "$XENIA_NEXUS" ] || XENIA_NEXUS="$APPDIR/usr/bin/xenia-nexus"
 
 if [ -n "$1" ] && [ -e "$1" ]; then
     # A game path was passed — route straight to the emulator.
