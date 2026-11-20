@@ -7,6 +7,7 @@
  ******************************************************************************
  */
 
+#define XE_RESOLVE_INPASS 1
 #define XE_RESOLVE_HOST_COLOR_BPP 32
 #define XE_RESOLVE_INPASS_7E3 1
 #include "resolve_host_color_inpass_entry.xesli"
