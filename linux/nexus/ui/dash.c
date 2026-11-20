@@ -1489,7 +1489,7 @@ static void go_spawn(void)
         snprintf(e, sizeof(e), "The game couldn't start (error %lu)", GetLastError());
         dash_toast(e);
 #else
-    const char *args[5] = {D.exe, "--fullscreen", g_go.path, g_go.has_extra ? g_go.extra : NULL, NULL};
+    const char *args[6] = {D.exe, "--fullscreen", "--headless", g_go.path, g_go.has_extra ? g_go.extra : NULL, NULL};
     g_child = SDL_CreateProcess(args, false);
     if (g_child) {
         g_go.t_start = SDL_GetTicks();
