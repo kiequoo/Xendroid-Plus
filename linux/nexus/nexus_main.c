@@ -15,18 +15,12 @@
 #include <SDL3/SDL_main.h>
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 /* Resolve the directory containing the running executable.
- * Returns a heap-allocated string ending in '/', or NULL on failure. */
-static char *exe_dir(void)
+ * SDL_GetBasePath() in SDL3 returns a static const char*; just return it. */
+static const char *exe_dir(void)
 {
-    char *base = SDL_GetBasePath();
-    if (!base) {
-        return NULL;
-    }
-    return base;   /* SDL_GetBasePath already ends with the separator */
+    return SDL_GetBasePath();   /* ends with '/', or NULL on failure */
 }
 
 int main(int argc, char *argv[])
@@ -52,9 +46,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    char *dir = exe_dir();
+    const char *dir = exe_dir();
     const int r = dash_run(win, dir ? dir : "");
-    SDL_free(dir);
 
     SDL_DestroyWindow(win);
     SDL_Quit();
