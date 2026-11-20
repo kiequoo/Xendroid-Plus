@@ -1,0 +1,24 @@
+#!/bin/sh
+# Xenia Nexus — AppRun routing script.
+#
+# No argument → launch the Nexus dashboard UI (game library).
+# File argument → pass straight to xenia_edge (frontend/emulator-only mode).
+#
+# This preserves the existing "frontend passes a game path" workflow while
+# also providing a standalone launcher when invoked without arguments.
+set -e
+
+SELF_DIR="$(dirname "$(readlink -f "$0")")"
+export APPDIR="${APPDIR:-$SELF_DIR}"
+
+# Resolve binaries inside the AppDir
+XENIA_EDGE="$APPDIR/usr/bin/xenia_edge"
+XENIA_NEXUS="$APPDIR/usr/bin/xenia-nexus"
+
+if [ -n "$1" ] && [ -e "$1" ]; then
+    # A game path was passed — route straight to the emulator.
+    exec "$XENIA_EDGE" "$@"
+else
+    # No argument (or non-existent path) — launch the Nexus dashboard.
+    exec "$XENIA_NEXUS" "$@"
+fi

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Xenia Nexus
+GenericName=Xbox 360 Emulator
+Comment=Xbox 360 dashboard launcher with native arm64 xenia
+Exec=xenia-nexus
+Icon=xenia-nexus
+Categories=Game;Emulator;
+Keywords=xbox;360;emulator;xenia;
+StartupNotify=false

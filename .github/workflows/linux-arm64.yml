@@ -2,7 +2,7 @@ name: Linux ARM64
 
 on:
   push:
-    branches: [main, linux/arm64]
+    branches: [main, linux/arm64, feat/xenia-nexus]
     paths:
       - 'emulator-core/src/main/cpp/xenia/**'
       - 'linux/**'
@@ -163,42 +163,85 @@ jobs:
         if: steps.cache-linuxdeploy.outputs.cache-hit == 'true'
         run: echo "$HOME/linuxdeploy" >> $GITHUB_PATH
 
-      - name: Build AppImage
+      - name: Build Xenia Nexus launcher
+        env:
+          CC: clang-21
+          CMAKE_C_COMPILER_LAUNCHER: sccache
+          SCCACHE_GHA_ENABLED: "true"
         run: |
-          binary=emulator-core/src/main/cpp/xenia/build/bin/Linux/Release/xenia_edge
-          if [ ! -f "$binary" ]; then
-            echo "::error::xenia_edge not found at $binary"
+          cmake -S linux/nexus -B linux/nexus/build \
+            -G "Ninja Multi-Config" \
+            -DCMAKE_C_COMPILER=clang-21 \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache
+          cmake --build linux/nexus/build --config Release
+          nexus_bin=linux/nexus/build/Release/xenia-nexus
+          if [ ! -f "$nexus_bin" ]; then
+            # Fallback: Ninja Multi-Config may put it without sub-directory
+            nexus_bin=$(find linux/nexus/build -name "xenia-nexus" -type f | head -n1)
+          fi
+          if [ -z "$nexus_bin" ] || [ ! -f "$nexus_bin" ]; then
+            echo "::error::xenia-nexus binary not found after build"
+            find linux/nexus/build -type f -name "xenia*" || true
             exit 1
           fi
-          if ! file "$binary" | grep -q "aarch64"; then
-            echo "::error::$binary is not an aarch64 binary"
-            file "$binary"
-            exit 1
-          fi
-          strip --strip-debug "$binary"
+          echo "NEXUS_BIN=$nexus_bin" >> $GITHUB_ENV
 
-          # Assemble AppDir with icons mirroring xenia-edge's layout
-          mkdir -p artifacts/xenia_edge
-          for size in 16 32 48 64 128 256 512 1024; do
-            mkdir -p "artifacts/xenia_edge/usr/share/icons/hicolor/${size}x${size}/apps"
-            cp "linux/assets/icon/${size}.png" \
-               "artifacts/xenia_edge/usr/share/icons/hicolor/${size}x${size}/apps/xenia_edge.png"
+      - name: Build XeniaNexus AppImage
+        run: |
+          xenia_bin=emulator-core/src/main/cpp/xenia/build/bin/Linux/Release/xenia_edge
+          nexus_bin=$NEXUS_BIN
+
+          for f in "$xenia_bin" "$nexus_bin"; do
+            if [ ! -f "$f" ]; then
+              echo "::error::binary not found: $f"; exit 1
+            fi
+            if ! file "$f" | grep -q "aarch64"; then
+              echo "::error::$f is not an aarch64 binary"; file "$f"; exit 1
+            fi
           done
 
-          linuxdeploy --appdir artifacts/xenia_edge \
-            --executable "$binary" \
-            --desktop-file linux/assets/xenia_edge.desktop \
-            --icon-file linux/assets/icon/256.png \
-            --output appimage
+          strip --strip-debug "$xenia_bin" "$nexus_bin"
+
+          # --- Assemble the unified AppDir ---
+          APPDIR=artifacts/xenia_nexus
+
+          # Nexus icons
+          for size in 16 32 48 64 128 256 512 1024; do
+            mkdir -p "${APPDIR}/usr/share/icons/hicolor/${size}x${size}/apps"
+            cp "linux/nexus/assets/icon/${size}.png" \
+               "${APPDIR}/usr/share/icons/hicolor/${size}x${size}/apps/xenia-nexus.png"
+          done
+
+          # Fonts: beside the launcher binary at usr/bin/fonts/ so cfg_exe_dir()
+          # (which returns the directory of the running binary) finds them.
+          # linux/nexus/ui/fonts/ ships Play (OFL) as Phase 1 fallback;
+          # Selawik will replace it once added to that directory.
+          mkdir -p "${APPDIR}/usr/bin/fonts"
+          cp linux/nexus/ui/fonts/*.ttf "${APPDIR}/usr/bin/fonts/"
+
+          # Step 1: let linuxdeploy assemble the AppDir (no --output yet).
+          # Both binaries end up in usr/bin/; libs are bundled.
+          linuxdeploy --appdir "$APPDIR" \
+            --executable "$xenia_bin" \
+            --executable "$nexus_bin" \
+            --desktop-file linux/nexus/assets/xenia-nexus.desktop \
+            --icon-file linux/nexus/assets/icon/256.png
+
+          # Step 2: install our custom AppRun routing script.
+          cp linux/nexus/assets/AppRun "${APPDIR}/AppRun"
+          chmod +x "${APPDIR}/AppRun"
+
+          # Step 3: squash the AppDir into an AppImage.
+          ARCH=aarch64 linuxdeploy-plugin-appimage --appdir "$APPDIR"
 
           appimage_file=$(ls -1 *.AppImage | head -n1)
           mkdir -p artifacts/release
-          mv "$appimage_file" artifacts/release/XeniaEdge-arm64.AppImage
-          chmod +x artifacts/release/XeniaEdge-arm64.AppImage
+          mv "$appimage_file" artifacts/release/XeniaNexus-arm64.AppImage
+          chmod +x artifacts/release/XeniaNexus-arm64.AppImage
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: xenia-app-linux-arm64
-          path: artifacts/release/XeniaEdge-arm64.AppImage
+          path: artifacts/release/XeniaNexus-arm64.AppImage
           if-no-files-found: error
