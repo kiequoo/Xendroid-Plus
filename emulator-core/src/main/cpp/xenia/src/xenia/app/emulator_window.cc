@@ -98,10 +98,16 @@ DEFINE_int32(recent_titles_entry_amount, 10,
              "Allows user to define how many titles is saved in list of "
              "recently played titles.",
              "General");
+#if XE_PLATFORM_xendroid
+// On desktop Linux this cvar is defined by window_wx.cc; only define it here
+// for Android where wxWidgets is not compiled.
 DEFINE_bool(disable_doubleclick_fullscreen, false,
             "Allows the user to disable the behavior where a fast double-click "
             "causes Xenia to enter fullscreen mode.",
             "General");
+#else
+DECLARE_bool(disable_doubleclick_fullscreen);
+#endif
 
 namespace xe {
 namespace app {

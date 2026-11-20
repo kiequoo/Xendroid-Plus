@@ -13,6 +13,7 @@
 #include <memory>
 #include <string>
 
+#include "xenia/app/game_library.h"
 #include "xenia/emulator.h"
 #include "xenia/gpu/command_processor.h"
 #include "xenia/ui/imgui_dialog.h"
@@ -73,6 +74,9 @@ class EmulatorWindow {
   ui::WindowedAppContext& app_context() const { return app_context_; }
   ui::Window* window() const { return window_.get(); }
   ui::ImGuiDrawer* imgui_drawer() const { return imgui_drawer_.get(); }
+  // Xendroid's EmulatorWindow doesn't hold a GameLibrary instance; return nullptr
+  // so game_list_panel_wx compiles cleanly and shows an empty list on Linux.
+  GameLibrary* game_library() const { return nullptr; }
 
   ui::Presenter* GetGraphicsSystemPresenter() const;
   void SetupGraphicsSystemPresenterPainting();

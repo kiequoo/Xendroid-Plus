@@ -415,6 +415,10 @@ class VulkanDevice {
     // ZeroFG independent Android presenter support. These are enabled only
     // when a ZeroFG session requests them and remain optional capability gates.
     bool ext_ANDROID_external_memory_android_hardware_buffer = false;
+#endif
+#if XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid || XE_PLATFORM_GNU_LINUX
+    // VK_KHR_external_semaphore_fd: cross-platform sync-FD import/export used
+    // by ZeroFG for frame handoff. Android/xendroid and desktop Linux.
     bool ext_KHR_external_semaphore_fd = false;
 #endif
   };
@@ -456,13 +460,15 @@ class VulkanDevice {
     return vkCmdPipelineBarrier2_;
   }
   PFN_vkDeviceWaitIdle vkDeviceWaitIdle() const { return vkDeviceWaitIdle_; }
-#if XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid
+#if XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid || XE_PLATFORM_GNU_LINUX
   PFN_vkGetSemaphoreFdKHR vkGetSemaphoreFdKHR() const {
     return vkGetSemaphoreFdKHR_;
   }
   PFN_vkImportSemaphoreFdKHR vkImportSemaphoreFdKHR() const {
     return vkImportSemaphoreFdKHR_;
   }
+#endif
+#if XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid
   PFN_vkGetAndroidHardwareBufferPropertiesANDROID
   vkGetAndroidHardwareBufferPropertiesANDROID() const {
     return vkGetAndroidHardwareBufferPropertiesANDROID_;
@@ -728,9 +734,11 @@ class VulkanDevice {
   PFN_vkWaitSemaphores vkWaitSemaphores_ = nullptr;
   PFN_vkCmdPipelineBarrier2 vkCmdPipelineBarrier2_ = nullptr;
   PFN_vkDeviceWaitIdle vkDeviceWaitIdle_ = nullptr;
-#if XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid
+#if XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid || XE_PLATFORM_GNU_LINUX
   PFN_vkGetSemaphoreFdKHR vkGetSemaphoreFdKHR_ = nullptr;
   PFN_vkImportSemaphoreFdKHR vkImportSemaphoreFdKHR_ = nullptr;
+#endif
+#if XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid
   PFN_vkGetAndroidHardwareBufferPropertiesANDROID
       vkGetAndroidHardwareBufferPropertiesANDROID_ = nullptr;
   PFN_vkGetPhysicalDeviceImageFormatProperties2

@@ -57,7 +57,15 @@
 // and let the normal AudioSystem handling take it, to prevent duplicate
 // implementations. They can be found in xboxkrnl_audio_xma.cc
 
+#if XE_PLATFORM_xendroid
 DECLARE_bool(apu_aaudio_log_stats);
+#else
+// Defined in xe_aaudio_audio_driver.cpp on Android; provide a stub on Linux so
+// the shared audio_system / xma_decoder code that references it links cleanly.
+DEFINE_bool(apu_aaudio_log_stats, false,
+            "Log Android AAudio callback statistics (no-op on Linux).",
+            "APU");
+#endif
 
 DEFINE_uint32(apu_max_queued_frames, 8,
               "Allows changing max buffered audio frames to reduce audio "

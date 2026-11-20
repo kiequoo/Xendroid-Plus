@@ -325,6 +325,11 @@ else()
   add_compile_options(
     $<$<COMPILE_LANGUAGE:CXX>:-Wno-switch>
     $<$<COMPILE_LANGUAGE:CXX>:-Wno-attributes>
+    # Clang 16+ promotes incompatible pointer types to an error in C even with
+    # -w; suppress it globally so the vendored FFmpeg (which mixes AVCodec/FFCodec
+    # pointer types) compiles cleanly. Present in xenia-edge already.
+    $<$<COMPILE_LANGUAGE:C>:-Wno-incompatible-pointer-types>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-implicit-function-declaration>
   )
 
   # Clang-specific C++ warnings (matches AppleClang too)

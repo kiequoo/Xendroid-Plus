@@ -1,0 +1,15 @@
+/**
+ ******************************************************************************
+ * Xenia : Xbox 360 Emulator Research Project                                 *
+ ******************************************************************************
+ * Copyright 2026 Ben Vanik. All rights reserved.                             *
+ * Released under the BSD license - see LICENSE in the root for more details. *
+ ******************************************************************************
+ */
+
+#define XE_RESOLVE_HOST_COLOR_BPP 32
+#define XE_RESOLVE_HOST_COLOR_MSAA_SAMPLES 4
+#define XE_RESOLVE_HOST_COLOR_SOURCE_UINT 1
+#define XE_RESOLVE_RESOLUTION_SCALED 1
+#define XE_RESOLVE_HOST_COLOR_SOURCE_2X2 1
+#include "resolve_host_color_entry.xesli"
