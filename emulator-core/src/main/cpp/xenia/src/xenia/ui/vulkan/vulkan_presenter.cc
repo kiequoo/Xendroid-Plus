@@ -26,9 +26,11 @@
 #include "xenia/base/assert.h"
 #include "xenia/base/cvar.h"
 #include "xenia/base/frame_stats.h"
+#if XE_PLATFORM_WIN32
 #include "third_party/winfg/src/framegen.hpp"
 #include "third_party/lsfg/lsfg_engine.h"
 #include "third_party/lsfg/lsfg_vkd.h"
+#endif
 #include <chrono>
 #include <cstdlib>
 #if XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid
@@ -189,7 +191,11 @@ namespace vulkan {
 // Keep the existing optional FG implementation untouched. ZeroFG arbitrates
 // entry through the host wrapper below while it owns or hands back the surface.
 #define ScheduleGuestOutput ScheduleLegacyGuestOutput
+#if XE_PLATFORM_WIN32
 #include "xenia/ui/vulkan/vulkan_framegen.inc"
+#else
+#include "xenia/ui/vulkan/vulkan_framegen_stub.inc"
+#endif
 #undef ScheduleGuestOutput
 #include "xenia/ui/vulkan/vulkan_color_filter.inc"
 
