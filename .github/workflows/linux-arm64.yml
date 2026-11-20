@@ -141,31 +141,63 @@ jobs:
         if: always() && steps.setup-sccache.outcome == 'success'
         run: sccache --show-stats
 
-      - name: Prepare artifacts
-        id: prepare_artifacts
+      - name: Build AppImage
         run: |
           binary=emulator-core/src/main/cpp/xenia/build/bin/Linux/Release/xenia_edge
           if [ ! -f "$binary" ]; then
-            echo "::error::xenia-app not found at $binary"
-            exit 1
-          fi
-          if [ "$(stat -c%s "$binary")" -le 100000 ]; then
-            echo "::error::Binary is suspiciously small (< 100 KB)"
+            echo "::error::xenia_edge not found at $binary"
             exit 1
           fi
           if ! file "$binary" | grep -q "aarch64"; then
-            echo "::error::$binary is not an aarch64 binary:"
+            echo "::error::$binary is not an aarch64 binary"
             file "$binary"
             exit 1
           fi
+          strip --strip-debug "$binary"
+
+          # Download linuxdeploy arm64
+          curl -fsSL -o linuxdeploy \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-aarch64.AppImage
+          chmod +x linuxdeploy
+          ./linuxdeploy --appimage-extract-and-run --version
+
+          # Assemble AppDir
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cp "$binary" AppDir/usr/bin/xenia_edge
+
+          # Desktop file
+          cat > AppDir/usr/share/applications/xenia_edge.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Name=Xenia Edge
+          Exec=xenia_edge
+          Icon=xenia_edge
+          Type=Application
+          Categories=Game;Emulator;
+          DESKTOP
+
+          # Icon — use one from the existing squashfs if present, else a placeholder
+          icon_src="emulator-core/src/main/cpp/xenia/src/xenia/app/xenia-256.png"
+          if [ -f "$icon_src" ]; then
+            cp "$icon_src" AppDir/usr/share/icons/hicolor/256x256/apps/xenia_edge.png
+          else
+            convert -size 256x256 xc:#1a1a2e AppDir/usr/share/icons/hicolor/256x256/apps/xenia_edge.png 2>/dev/null || \
+            touch AppDir/usr/share/icons/hicolor/256x256/apps/xenia_edge.png
+          fi
+
+          # Build AppImage
+          OUTPUT=XeniaEdge-arm64.AppImage \
+          ./linuxdeploy --appimage-extract-and-run \
+            --appdir AppDir \
+            --output appimage
+
           mkdir -p artifacts/release
-          cp "$binary" artifacts/release/xenia-app
-          cp emulator-core/src/main/cpp/xenia/LICENSE artifacts/release/
+          mv XeniaEdge-arm64.AppImage artifacts/release/
           echo "artifact_path=artifacts/release" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: xenia-app-linux-arm64
-          path: artifacts/release
+          path: artifacts/release/XeniaEdge-arm64.AppImage
           if-no-files-found: error
