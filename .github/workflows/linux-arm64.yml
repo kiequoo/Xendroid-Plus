@@ -144,7 +144,7 @@ jobs:
       - name: Prepare artifacts
         id: prepare_artifacts
         run: |
-          binary=emulator-core/src/main/cpp/xenia/build/bin/Linux/Release/xenia-app
+          binary=emulator-core/src/main/cpp/xenia/build/bin/Linux/Release/xenia_edge
           if [ ! -f "$binary" ]; then
             echo "::error::xenia-app not found at $binary"
             exit 1
