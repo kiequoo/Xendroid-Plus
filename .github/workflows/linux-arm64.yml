@@ -228,8 +228,18 @@ jobs:
             --icon-file linux/nexus/assets/icon/256.png
 
           # Step 2: install our custom AppRun routing script.
+          # linuxdeploy creates AppRun as a SYMLINK -> usr/bin/xenia-nexus (the
+          # desktop file's Exec name).  A plain cp follows the symlink and
+          # overwrites the real launcher ELF with the routing script, leaving
+          # usr/bin/xenia-nexus as a shell script that execs itself — infinite
+          # loop, blank screen on the Odin.  Remove the symlink first so we
+          # write a real file and leave the ELF at usr/bin/xenia-nexus intact.
+          rm -f "${APPDIR}/AppRun"
           cp linux/nexus/assets/AppRun "${APPDIR}/AppRun"
           chmod +x "${APPDIR}/AppRun"
+          # Sanity: launcher ELF must not have been clobbered.
+          file "${APPDIR}/usr/bin/xenia-nexus" | grep -q ELF \
+            || { echo "::error::usr/bin/xenia-nexus is not an ELF — clobbered by AppRun cp"; exit 1; }
 
           # Step 3: squash the AppDir into an AppImage.
           ARCH=aarch64 linuxdeploy-plugin-appimage --appdir "$APPDIR"
