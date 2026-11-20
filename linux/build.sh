@@ -36,7 +36,7 @@ echo "--- configuring ---"
 cmake -S . -B build -G "Ninja Multi-Config" \
     -DCMAKE_C_COMPILER="$CC" \
     -DCMAKE_CXX_COMPILER="$CXX" \
-    -DCMAKE_PROJECT_INCLUDE="$INJECT_CMAKE"
+    -DCMAKE_PROJECT_xenia_INCLUDE="$INJECT_CMAKE"
 
 # Build Release. Cap link/ThinLTO jobs so they don't exhaust RAM on the Odin 3.
 echo "--- building xenia-app (Release) ---"

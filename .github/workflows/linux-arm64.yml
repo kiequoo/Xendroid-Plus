@@ -127,7 +127,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=clang++-21 \
             -DCMAKE_C_COMPILER_LAUNCHER=sccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-            -DCMAKE_PROJECT_INCLUDE="${GITHUB_WORKSPACE}/linux/zerofg_inject.cmake"
+            -DCMAKE_PROJECT_xenia_INCLUDE="${GITHUB_WORKSPACE}/linux/zerofg_inject.cmake"
 
       - name: Build
         working-directory: emulator-core/src/main/cpp/xenia
