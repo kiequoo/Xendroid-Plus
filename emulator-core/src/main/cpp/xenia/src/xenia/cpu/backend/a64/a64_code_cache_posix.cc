@@ -296,9 +296,9 @@ void PosixA64CodeCache::InitializeUnwindEntry(
                                  generated_code_write_base_ +
                                  generated_code_execute_base_;
 
+#if XE_PLATFORM_xendroid
   uint8_t* p = eh_frame_table_;
   uint8_t* cie_start = p;
-#if XE_PLATFORM_xendroid
 
     // Refuse to bump past the end of the table instead of corrupting the heap.
     // Real entries are <= ~140 B (a thunk's CIE+FDE); 1 KiB is a safe ceiling.
@@ -520,6 +520,8 @@ void PosixA64CodeCache::InitializeUnwindEntry(
 
 #else
   // === CIE (Common Information Entry) ===
+  uint8_t* p = unwind_entry_address;
+  uint8_t* cie_start = p;
   uint8_t* cie_length_ptr = p;
   p += 4;
 
