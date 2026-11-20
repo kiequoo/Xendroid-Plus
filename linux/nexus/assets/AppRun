@@ -5,6 +5,19 @@
 set -e
 SELF_DIR="$(dirname "$(readlink -f "$0")")"
 export APPDIR="${APPDIR:-$SELF_DIR}"
+
+# --- Turnip (Mesa Adreno) stability on Armada / Odin 3 -----------------------
+# The Adreno 830 (A8xx) in the Odin hangs on Turnip when a large LRZ fast-clear
+# flush is still in flight as the next render pass rebinds LRZ — xenia's depth
+# usage trips this constantly, giving VK_ERROR_DEVICE_LOST ("Graphics device
+# lost"). Stock Mesa on Armada lacks the upstream code fix, so we disable LRZ
+# fast-clear, the documented workaround for this exact A8xx bug.
+# Never happens on Android (proprietary Adreno driver). Each var is applied
+# only if unset, so it can be overridden on-device without a rebuild:
+#   TU_DEBUG=nolrz ~/Applications/XeniaNexus-arm64.AppImage
+: "${TU_DEBUG:=nolrzfc}"               # disable LRZ fast-clear (A8xx hang fix)
+: "${MESA_VK_WSI_PRESENT_MODE:=fifo}"  # stable vsync present under gamescope overlay
+export TU_DEBUG MESA_VK_WSI_PRESENT_MODE
 XENIA_EDGE="$APPDIR/usr/bin/xenia_edge"
 XENIA_NEXUS="$APPDIR/usr/bin/xenia-nexus"
 if [ -n "$1" ] && [ -e "$1" ]; then
