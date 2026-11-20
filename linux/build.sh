@@ -27,7 +27,7 @@ cd "$XENIA_DIR"
 
 # Download Slang shader compiler for the host arch (cached under .slang/).
 echo "--- fetching Slang shader compiler ---"
-./xenia-build.py slang
+python3 ./xenia-build.py slang
 
 # Configure + build in Release.  On a native aarch64 host the top CMakeLists
 # auto-detects XE_TARGET_AARCH64; the 'default' Ninja Multi-Config preset
@@ -36,7 +36,7 @@ echo "--- fetching Slang shader compiler ---"
 echo "--- building xenia-app (Release) ---"
 XENDROID_NINJA_JOBS="${XENDROID_NINJA_JOBS:-$(nproc)}" \
 XENDROID_THINLTO_JOBS="${XENDROID_THINLTO_JOBS:-4}" \
-./xenia-build.py build --config=Release
+python3 ./xenia-build.py build --config=Release
 
 BINARY="$XENIA_DIR/build/bin/Linux/Release/xenia-app"
 if [ ! -f "$BINARY" ]; then

@@ -88,9 +88,10 @@ jobs:
       - name: Download Slang
         if: steps.cache-slang.outputs.cache-hit != 'true'
         working-directory: emulator-core/src/main/cpp/xenia
-        run: ./xenia-build.py slang
+        run: python3 ./xenia-build.py slang
 
       - name: Setup sccache
+        id: setup-sccache
         uses: mozilla-actions/sccache-action@v0.0.10
 
       - name: Build
@@ -101,10 +102,10 @@ jobs:
           SCCACHE_GHA_ENABLED: "true"
           CMAKE_C_COMPILER_LAUNCHER: sccache
           CMAKE_CXX_COMPILER_LAUNCHER: sccache
-        run: ./xenia-build.py build --config=Release
+        run: python3 ./xenia-build.py build --config=Release
 
       - name: sccache stats
-        if: always()
+        if: always() && steps.setup-sccache.outcome == 'success'
         run: sccache --show-stats
 
       - name: Prepare artifacts
