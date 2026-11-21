@@ -17,7 +17,8 @@ export APPDIR="${APPDIR:-$SELF_DIR}"
 #   TU_DEBUG=nolrz,nolrzfc ~/Applications/XeniaNexus-arm64.AppImage
 : "${TU_DEBUG:=nolrz}"                 # disable LRZ entirely (A8xx hang fix; nolrzfc alone insufficient)
 : "${MESA_VK_WSI_PRESENT_MODE:=fifo}"  # stable vsync present under gamescope overlay
-export TU_DEBUG MESA_VK_WSI_PRESENT_MODE
+: "${VK_LOADER_LAYERS_DISABLE:=~all~}" # prevent Steam overlay Vulkan layer from injecting — causes GPU hangcheck on Turnip/KGSL (tu_knl_drm_msm BO map failure → DEVICE_LOST)
+export TU_DEBUG MESA_VK_WSI_PRESENT_MODE VK_LOADER_LAYERS_DISABLE
 XENIA_EDGE="$APPDIR/usr/bin/xenia_edge"
 XENIA_NEXUS="$APPDIR/usr/bin/xenia-nexus"
 if [ -n "$1" ] && [ -e "$1" ]; then
