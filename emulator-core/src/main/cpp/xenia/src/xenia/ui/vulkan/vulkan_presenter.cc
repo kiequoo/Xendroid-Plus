@@ -333,6 +333,27 @@ bool VulkanPresenter::PaintContext::Submission::Initialize() {
   return true;
 }
 
+bool VulkanPresenter::PaintContext::Submission::ReinitializeAcquireSemaphore() {
+  const VulkanDevice::Functions& dfn = vulkan_device_->functions();
+  const VkDevice device = vulkan_device_->device();
+  if (acquire_semaphore_ != VK_NULL_HANDLE) {
+    dfn.vkDestroySemaphore(device, acquire_semaphore_, nullptr);
+    acquire_semaphore_ = VK_NULL_HANDLE;
+  }
+  VkSemaphoreCreateInfo semaphore_create_info;
+  semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  semaphore_create_info.pNext = nullptr;
+  semaphore_create_info.flags = 0;
+  if (dfn.vkCreateSemaphore(device, &semaphore_create_info, nullptr,
+                            &acquire_semaphore_) != VK_SUCCESS) {
+    XELOGE(
+        "VulkanPresenter: Failed to recreate acquire semaphore after "
+        "DEVICE_LOST");
+    return false;
+  }
+  return true;
+}
+
 #if XE_PLATFORM_ANDROID || XE_PLATFORM_xendroid
 namespace {
 class AndroidPresenterAdpf {
@@ -3047,6 +3068,15 @@ Presenter::PaintResult VulkanPresenter::PaintAndPresentImpl(
     if (submit_result == VK_ERROR_DEVICE_LOST) {
       XELOGE("VulkanPresenter: VK_ERROR_DEVICE_LOST - GPU crashed or hung");
       vulkan_device()->LogFaultInfo();
+      // The acquire semaphore's state is undefined after a failed vkQueueSubmit
+      // (Vulkan spec §7.4). Reusing it in the next vkAcquireNextImageKHR call
+      // violates VUID-vkAcquireNextImageKHR-semaphore-01286 (semaphore must not
+      // already be signaled). Turnip enforces this strictly — the next acquire
+      // returns VK_ERROR_DEVICE_LOST fatally. Destroy and recreate the
+      // semaphore so the swapchain rebuild starts with a clean object.
+      paint_context_.submissions[current_paint_submission_index %
+                                 paint_submission_count]
+          ->ReinitializeAcquireSemaphore();
     } else if (submit_result == VK_ERROR_OUT_OF_HOST_MEMORY) {
       XELOGE("VulkanPresenter: VK_ERROR_OUT_OF_HOST_MEMORY");
     } else if (submit_result == VK_ERROR_OUT_OF_DEVICE_MEMORY) {

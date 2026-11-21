@@ -385,6 +385,7 @@ class VulkanPresenter final : public Presenter {
       ~Submission();
 
       VkSemaphore acquire_semaphore() const { return acquire_semaphore_; }
+      bool ReinitializeAcquireSemaphore();
       VkCommandPool draw_command_pool() const { return draw_command_pool_; }
       VkCommandBuffer draw_command_buffer() const {
         return draw_command_buffer_;
