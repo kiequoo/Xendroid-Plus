@@ -14,8 +14,8 @@ export APPDIR="${APPDIR:-$SELF_DIR}"
 # fast-clear, the documented workaround for this exact A8xx bug.
 # Never happens on Android (proprietary Adreno driver). Each var is applied
 # only if unset, so it can be overridden on-device without a rebuild:
-#   TU_DEBUG=nolrz ~/Applications/XeniaNexus-arm64.AppImage
-: "${TU_DEBUG:=nolrzfc}"               # disable LRZ fast-clear (A8xx hang fix)
+#   TU_DEBUG=nolrz,nolrzfc ~/Applications/XeniaNexus-arm64.AppImage
+: "${TU_DEBUG:=nolrz}"                 # disable LRZ entirely (A8xx hang fix; nolrzfc alone insufficient)
 : "${MESA_VK_WSI_PRESENT_MODE:=fifo}"  # stable vsync present under gamescope overlay
 export TU_DEBUG MESA_VK_WSI_PRESENT_MODE
 XENIA_EDGE="$APPDIR/usr/bin/xenia_edge"
