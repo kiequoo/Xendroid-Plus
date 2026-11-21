@@ -2365,6 +2365,7 @@ Presenter::PaintResult VulkanPresenter::PaintAndPresentImpl(
       XELOGE(
           "VulkanPresenter: Failed to acquire the swapchain image as the "
           "device has been lost");
+      vulkan_device()->LogFaultInfo();
       return PaintResult::kGpuLostResponsible;
     case VK_ERROR_OUT_OF_DATE_KHR:
     case VK_ERROR_SURFACE_LOST_KHR:
@@ -3045,6 +3046,7 @@ Presenter::PaintResult VulkanPresenter::PaintAndPresentImpl(
     }
     if (submit_result == VK_ERROR_DEVICE_LOST) {
       XELOGE("VulkanPresenter: VK_ERROR_DEVICE_LOST - GPU crashed or hung");
+      vulkan_device()->LogFaultInfo();
     } else if (submit_result == VK_ERROR_OUT_OF_HOST_MEMORY) {
       XELOGE("VulkanPresenter: VK_ERROR_OUT_OF_HOST_MEMORY");
     } else if (submit_result == VK_ERROR_OUT_OF_DEVICE_MEMORY) {
@@ -3164,6 +3166,7 @@ Presenter::PaintResult VulkanPresenter::PaintAndPresentImpl(
           paint_context_.completion_timeline
               .GetCompletedSubmissionFromLastUpdate(),
           paint_context_.completion_timeline.pending_submission_count());
+      vulkan_device()->LogFaultInfo();
       return PaintResult::kGpuLostResponsible;
     case VK_ERROR_OUT_OF_DATE_KHR:
     case VK_ERROR_SURFACE_LOST_KHR:
